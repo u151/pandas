@@ -34,6 +34,10 @@ void Enemy::Update()
 	dir_timer = dir_timer - dt;
 	prog_timer = prog_timer - dt;
 	Point newPos = pos_;
+	Point frontPos = pos_;
+	Point rightPos = pos_;
+	Point leftPos = pos_;
+	Point downPos = pos_;
 
 	//int mapValue = FindGameObject<Stage>()->GetMap(newPos.x / CHA_SIZE, newPos.y / CHA_SIZE);
 	//if (mapValue == 1) {
@@ -49,20 +53,39 @@ void Enemy::Update()
 		{
 		case UP:
 			newPos.y -= ENEMY_DRAW_SIZE;
+			frontPos.y -= ENEMY_DRAW_SIZE;
+			rightPos.x += ENEMY_DRAW_SIZE;
+			leftPos.x -= ENEMY_DRAW_SIZE;
+			downPos.y += ENEMY_DRAW_SIZE;
 			break;
 		case DOWN:
 			newPos.y += ENEMY_DRAW_SIZE;
+			frontPos.y += ENEMY_DRAW_SIZE;
+			rightPos.x -= ENEMY_DRAW_SIZE;
+			leftPos.x += ENEMY_DRAW_SIZE;
+			downPos.y -= ENEMY_DRAW_SIZE;
 			break;
 		case LEFT:
 			newPos.x -= ENEMY_DRAW_SIZE;
+			frontPos.x -= ENEMY_DRAW_SIZE;
+			rightPos.y -= ENEMY_DRAW_SIZE;
+			leftPos.y += ENEMY_DRAW_SIZE;
+			downPos.x += ENEMY_DRAW_SIZE;
 			break;
 		case RIGHT:
 			newPos.x += ENEMY_DRAW_SIZE;
+			frontPos.x += ENEMY_DRAW_SIZE;
+			rightPos.y += ENEMY_DRAW_SIZE;
+			leftPos.y -= ENEMY_DRAW_SIZE;
+			downPos.x -= ENEMY_DRAW_SIZE;
 			break;
 		default:
 			break;
 		}
-		int mapValue = FindGameObject<Stage>()->GetMap(newPos.x / CHA_SIZE, newPos.y / CHA_SIZE);
+		int mapValue = FindGameObject<Stage>()->GetMap(frontPos.x / CHA_SIZE, frontPos.y / CHA_SIZE);
+		int mapValue = FindGameObject<Stage>()->GetMap(rightPos.x / CHA_SIZE, rightPos.y / CHA_SIZE);
+		int mapValue = FindGameObject<Stage>()->GetMap(leftPos.x / CHA_SIZE, leftPos.y / CHA_SIZE);
+		int mapValue = FindGameObject<Stage>()->GetMap(downPos.x / CHA_SIZE, downPos.y / CHA_SIZE);
 		//Stage*stage=FindGameObject<Stage>
 		// 
 		//
