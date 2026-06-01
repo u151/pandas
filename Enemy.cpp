@@ -75,7 +75,7 @@ void Enemy::Update()
 		if (mapValue == 1)
 		{
 			//newPos = pos_;
-			dir_ = static_cast<DIR>((dir_ + 1) % 4);
+			dir_ = static_cast<DIR>((dir_ + 1) % 2);
 		}
 		else
 		{
@@ -84,7 +84,87 @@ void Enemy::Update()
 		prog_timer = 0.1f + prog_timer;
 	}
 	// 透明度を50%（128/255）に設定SetDrawBlendMode( DX_BLENDMODE_ALPHA, 128 ); // 赤色の半透明矩形を描画（引数: 左上X, 左上Y, 右下X, 右下Y, 色, 塗りつぶし）DrawBox( 100, 100, 300, 300, GetColor( 255, 0, 0 ), TRUE ); // 描画が終わったら通常のブレンドモードに戻すSetDrawBlendMode( DX_BLENDMODE_NOBLEND, 0 );
+	/*if (prog_timer < 0.0f)
+	{
+		Stage* stage = FindGameObject<Stage>();
+		if (stage != nullptr)
+		{
+			// 1. 現在の方向を基準に「前」「左」「右」の次の座標（仮）を計算する
+			Point frontPos = pos_;
+			Point leftPos = pos_;
+			Point rightPos = pos_;
 
+			// 現在の向きに応じて、前・左・右の座標をマッピング
+			switch (dir_)
+			{
+			case UP:
+				frontPos.y -= ENEMY_DRAW_SIZE; // 前
+				leftPos.x -= ENEMY_DRAW_SIZE; // 左
+				rightPos.x += ENEMY_DRAW_SIZE; // 右
+				break;
+			case DOWN:
+				frontPos.y += ENEMY_DRAW_SIZE; // 前
+				leftPos.x += ENEMY_DRAW_SIZE; // 左（下を向いているので、左側はXプラス方向）
+				rightPos.x -= ENEMY_DRAW_SIZE; // 右
+				break;
+			case LEFT:
+				frontPos.x -= ENEMY_DRAW_SIZE; // 前
+				leftPos.y += ENEMY_DRAW_SIZE; // 左
+				rightPos.y -= ENEMY_DRAW_SIZE; // 右
+				break;
+			case RIGHT:
+				frontPos.x += ENEMY_DRAW_SIZE; // 前
+				leftPos.y -= ENEMY_DRAW_SIZE; // 左
+				rightPos.y += ENEMY_DRAW_SIZE; // 右
+				break;
+			default:
+				break;
+			}
+
+			// 2. それぞれの場所のマップチップ（壁かどうか）を取得
+			int frontMap = stage->GetMap(frontPos.x / CHA_SIZE, frontPos.y / CHA_SIZE);
+			int leftMap = stage->GetMap(leftPos.x / CHA_SIZE, leftPos.y / CHA_SIZE);
+
+			// 3. 【条件】前が壁(1) かつ 左が壁(1) なら、右に曲がって進む
+			if (frontMap == 1 && leftMap == 1)
+			{
+				// 向きを右に変更する
+				switch (dir_)
+				{
+				case UP:    dir_ = RIGHT; break;
+				case DOWN:  dir_ = LEFT;  break;
+				case LEFT:  dir_ = UP;    break;
+				case RIGHT: dir_ = DOWN;  break;
+				}
+				// 右に進めるなら進む（右も壁ならその場にとどまる）
+				int rightMap = stage->GetMap(rightPos.x / CHA_SIZE, rightPos.y / CHA_SIZE);
+				if (rightMap != 1)
+				{
+					pos_ = rightPos;
+				}
+			}
+			// 4. 前と左が両方1ではない場合（通常の移動処理）
+			else if (frontMap != 1)
+			{
+				// 前が進めるならそのまま前進
+				pos_ = frontPos;
+			}
+			else
+			{
+				// 前が壁だけど左が開いている時などの処理（必要に応じてここに反転などを入れる）
+				// 例: とりあえず左に曲がってみるなど
+				switch (dir_)
+				{
+				case UP:    dir_ = LEFT;  break;
+				case DOWN:  dir_ = RIGHT; break;
+				case LEFT:  dir_ = DOWN;  break;
+				case RIGHT: dir_ = UP;    break;
+				}
+			}
+		}
+
+		prog_timer = 0.1f; // タイマーリセット
+	}*/
 }
 
 void Enemy::Draw()
