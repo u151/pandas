@@ -10,7 +10,10 @@ public:
 	~Player();
 	void Update() override;
 	void Draw() override;
-	Point GetPlayerPos() { return pos_; }
+	Point GetPosition() const
+	{
+		return pos_;
+	}
 private:
 	int hImage_;//‰æ‘œID
 	Point pos_;
