@@ -4,46 +4,74 @@
 #include "Player.h"
 #include <cmath>
 
+
 namespace
 {
-	// 敵画像の1コマのサイズ
+	//========================================
+	// 敵画像
+	//========================================
+
 	const int ENEMY_IMAGE_SIZE = 48;
 
+	//========================================
 	// 敵の初期位置
+	//========================================
+
 	const Point ENEMY_INIT_POS =
 	{
 		20 * CHA_SIZE,
 		10 * CHA_SIZE
 	};
 
+	//========================================
 	// 敵の初期方向
+	//========================================
+
 	const DIR ENEMY_INIT_DIR = LEFT;
 
+	//========================================
 	// 敵の描画サイズ
+	//========================================
+
 	const int ENEMY_DRAW_SIZE = CHA_SIZE;
 
+	//========================================
 	// アニメーション
-	const int animFrame[4]
+	//========================================
+
+	const int animFrame[4] =
 	{
 		0, 1, 2, 1
 	};
 
 	const float ANIM_INTERVAL = 0.2f;
 
+	//========================================
 	// 視界
 	// 8マス以内
+	//========================================
+
 	const float SIGHT_DISTANCE =
 		8.0f * CHA_SIZE;
 
+	//========================================
 	// 攻撃距離
 	// 2マス以内
+	//========================================
+
 	const float ATTACK_DISTANCE =
 		2.0f * CHA_SIZE;
 
+	//========================================
 	// 探索時間
+	//========================================
+
 	const float SEARCH_TIME = 5.0f;
 
+	//========================================
 	// 移動間隔
+	//========================================
+
 	const float MOVE_INTERVAL = 0.2f;
 }
 
@@ -65,7 +93,9 @@ Enemy::Enemy()
 
 	searchTimer_ = 0.0f;
 	attackTimer_ = 0.0f;
-	moveTimer_ = MOVE_INTERVAL;
+
+	// 最初のUpdateですぐ動けるようにする
+	moveTimer_ = 0.0f;
 }
 
 
@@ -84,10 +114,6 @@ Enemy::~Enemy()
 
 void Enemy::Update()
 {
-	//====================================
-	// ステートによって処理を変更
-	//====================================
-
 	switch (state_)
 	{
 	case PATROL:
@@ -120,12 +146,20 @@ void Enemy::Update()
 
 void Enemy::Patrol()
 {
-	// プレイヤー発見
+	//====================================
+	// プレイヤーを発見
+	//====================================
+
 	if (IsPlayerInSight())
 	{
 		state_ = CHASE;
+		moveTimer_ = 0.0f;
 		return;
 	}
+
+	//====================================
+	// 移動タイマー
+	//====================================
 
 	moveTimer_ -= Time::DeltaTime();
 
@@ -134,10 +168,13 @@ void Enemy::Patrol()
 		return;
 	}
 
+	//====================================
+	// 前と右を調べる
+	//====================================
+
 	Point frontPos = pos_;
 	Point rightPos = pos_;
 
-	// 現在の方向から前と右を計算
 	switch (dir_)
 	{
 	case UP:
@@ -161,7 +198,10 @@ void Enemy::Patrol()
 		break;
 	}
 
-	// 右側が空いていたら右へ曲がる
+	//====================================
+	// 右側が空いていれば右へ曲がる
+	//====================================
+
 	if (IsMovePossible(rightPos))
 	{
 		switch (dir_)
@@ -185,12 +225,18 @@ void Enemy::Patrol()
 
 		pos_ = rightPos;
 	}
-	// 右が壁で前が空いていたら前進
+	//====================================
+	// 前が空いていれば前進
+	//====================================
+
 	else if (IsMovePossible(frontPos))
 	{
 		pos_ = frontPos;
 	}
-	// 前も壁なら左へ
+	//====================================
+	// 前も右も壁なら左へ方向転換
+	//====================================
+
 	else
 	{
 		switch (dir_)
@@ -232,20 +278,32 @@ void Enemy::Chase()
 		return;
 	}
 
-	// 視界から消えた
+	//====================================
+	// 攻撃距離に入った
+	//====================================
+
+	if (IsAttackRange())
+	{
+		state_ = ATTACK;
+		attackTimer_ = 0.0f;
+		return;
+	}
+
+	//====================================
+	// プレイヤーを見失った
+	//====================================
+
 	if (!IsPlayerInSight())
 	{
 		state_ = SEARCH;
 		searchTimer_ = 0.0f;
+		moveTimer_ = 0.0f;
 		return;
 	}
 
-	// 2マス以内なら攻撃
-	if (IsAttackRange())
-	{
-		state_ = ATTACK;
-		return;
-	}
+	//====================================
+	// 移動タイマー
+	//====================================
 
 	moveTimer_ -= Time::DeltaTime();
 
@@ -259,7 +317,10 @@ void Enemy::Chase()
 	int dx = playerPos.x - pos_.x;
 	int dy = playerPos.y - pos_.y;
 
-	// プレイヤーに近づく候補
+	//====================================
+	// X方向・Y方向の移動候補
+	//====================================
+
 	Point xPos = pos_;
 	Point yPos = pos_;
 
@@ -281,13 +342,19 @@ void Enemy::Chase()
 		yPos.y -= CHA_SIZE;
 	}
 
-	// X方向を優先するかY方向を優先するか
+	bool moved = false;
+
+	//====================================
+	// 距離が大きい方向を優先
+	//====================================
+
 	if (std::abs(dx) >= std::abs(dy))
 	{
-		// X方向に進める
+		// X方向
 		if (dx != 0 && IsMovePossible(xPos))
 		{
 			pos_ = xPos;
+			moved = true;
 
 			if (dx > 0)
 			{
@@ -298,10 +365,11 @@ void Enemy::Chase()
 				dir_ = LEFT;
 			}
 		}
-		// X方向が壁ならY方向
+		// Xが壁ならY方向
 		else if (dy != 0 && IsMovePossible(yPos))
 		{
 			pos_ = yPos;
+			moved = true;
 
 			if (dy > 0)
 			{
@@ -315,10 +383,11 @@ void Enemy::Chase()
 	}
 	else
 	{
-		// Y方向に進める
+		// Y方向
 		if (dy != 0 && IsMovePossible(yPos))
 		{
 			pos_ = yPos;
+			moved = true;
 
 			if (dy > 0)
 			{
@@ -329,10 +398,11 @@ void Enemy::Chase()
 				dir_ = UP;
 			}
 		}
-		// Y方向が壁ならX方向
+		// Yが壁ならX方向
 		else if (dx != 0 && IsMovePossible(xPos))
 		{
 			pos_ = xPos;
+			moved = true;
 
 			if (dx > 0)
 			{
@@ -342,6 +412,33 @@ void Enemy::Chase()
 			{
 				dir_ = LEFT;
 			}
+		}
+	}
+
+	//====================================
+	// どちらにも進めなかった場合
+	//====================================
+
+	if (!moved)
+	{
+		// 現在の方向を変えて次回再挑戦
+		switch (dir_)
+		{
+		case UP:
+			dir_ = RIGHT;
+			break;
+
+		case RIGHT:
+			dir_ = DOWN;
+			break;
+
+		case DOWN:
+			dir_ = LEFT;
+			break;
+
+		case LEFT:
+			dir_ = UP;
+			break;
 		}
 	}
 
@@ -357,32 +454,36 @@ void Enemy::Chase()
 void Enemy::Attack()
 {
 	//====================================
-	// 攻撃距離から逃げられた
+	// プレイヤーが攻撃距離から離れた
 	//====================================
 
 	if (!IsAttackRange())
 	{
-		// Attack → Search
-		state_ = SEARCH;
-
-		searchTimer_ = 0.0f;
+		// まだ視界内なら追跡
+		if (IsPlayerInSight())
+		{
+			state_ = CHASE;
+		}
+		// 視界からも消えたら探索
+		else
+		{
+			state_ = SEARCH;
+			searchTimer_ = 0.0f;
+		}
 
 		return;
 	}
+
+	//====================================
+	// 攻撃タイマー
+	//====================================
 
 	attackTimer_ -= Time::DeltaTime();
 
 	if (attackTimer_ <= 0.0f)
 	{
 		//================================
-		// 攻撃処理
-		//================================
-		//
-		// 今回はステート処理までなので
-		// ここでは攻撃処理を入れない
-		//
-		// 後からプレイヤーへの
-		// ダメージ処理などを追加する
+		// ここに攻撃処理を追加する
 		//================================
 
 		attackTimer_ = 1.0f;
@@ -397,35 +498,43 @@ void Enemy::Attack()
 
 void Enemy::Search()
 {
-	searchTimer_ += Time::DeltaTime();
-
 	//====================================
 	// プレイヤーを再発見
 	//====================================
 
 	if (IsPlayerInSight())
 	{
-		// Search → Attack
-		state_ = ATTACK;
+		// ★重要
+		// 再発見しただけでは攻撃しない
+		// 攻撃距離ならChaseからAttackへ進む
+		state_ = CHASE;
 
-		attackTimer_ = 0.0f;
+		searchTimer_ = 0.0f;
+		moveTimer_ = 0.0f;
 
 		return;
 	}
 
 	//====================================
-	// 5秒見つからなかった
+	// 探索時間
 	//====================================
+
+	searchTimer_ += Time::DeltaTime();
 
 	if (searchTimer_ >= SEARCH_TIME)
 	{
-		// Search → Patrol
+		// 5秒見つからなければ巡回へ
 		state_ = PATROL;
 
 		searchTimer_ = 0.0f;
+		moveTimer_ = 0.0f;
 
 		return;
 	}
+
+	//====================================
+	// 探索移動
+	//====================================
 
 	moveTimer_ -= Time::DeltaTime();
 
@@ -435,7 +544,7 @@ void Enemy::Search()
 	}
 
 	//====================================
-	// 探索中は方向を変える
+	// 方向を変更
 	//====================================
 
 	switch (dir_)
@@ -457,29 +566,33 @@ void Enemy::Search()
 		break;
 	}
 
+	//====================================
+	// 新しい移動先
+	//====================================
+
 	Point newPos = pos_;
 
 	switch (dir_)
 	{
 	case UP:
-		newPos.y -= ENEMY_DRAW_SIZE;
+		newPos.y -= CHA_SIZE;
 		break;
 
 	case DOWN:
-		newPos.y += ENEMY_DRAW_SIZE;
+		newPos.y += CHA_SIZE;
 		break;
 
 	case LEFT:
-		newPos.x -= ENEMY_DRAW_SIZE;
+		newPos.x -= CHA_SIZE;
 		break;
 
 	case RIGHT:
-		newPos.x += ENEMY_DRAW_SIZE;
+		newPos.x += CHA_SIZE;
 		break;
 	}
 
 	//====================================
-	// 壁でなければ移動
+	// 移動できる場合だけ移動
 	//====================================
 
 	if (IsMovePossible(newPos))
@@ -507,10 +620,12 @@ float Enemy::GetPlayerDistance()
 	Point playerPos = player->GetPosition();
 
 	float dx =
-		(float)playerPos.x - (float)pos_.x;
+		static_cast<float>(playerPos.x) -
+		static_cast<float>(pos_.x);
 
 	float dy =
-		(float)playerPos.y - (float)pos_.y;
+		static_cast<float>(playerPos.y) -
+		static_cast<float>(pos_.y);
 
 	return std::sqrt(dx * dx + dy * dy);
 }
@@ -528,7 +643,6 @@ bool Enemy::IsPlayerInSight()
 
 //========================================
 // 攻撃距離判定
-// 2マス以内
 //========================================
 
 bool Enemy::IsAttackRange()
@@ -544,7 +658,7 @@ bool Enemy::IsAttackRange()
 bool Enemy::IsMovePossible(Point pos)
 {
 	//====================================
-	// ステージの範囲外チェック
+	// ステージの範囲外
 	//====================================
 
 	int mapX = pos.x / CHA_SIZE;
@@ -558,6 +672,10 @@ bool Enemy::IsMovePossible(Point pos)
 		return false;
 	}
 
+	//====================================
+	// Stage取得
+	//====================================
+
 	Stage* stage = FindGameObject<Stage>();
 
 	if (stage == nullptr)
@@ -565,8 +683,13 @@ bool Enemy::IsMovePossible(Point pos)
 		return false;
 	}
 
-	// 1 = 壁
+	//====================================
+	// マップ取得
+	//
 	// 0 = 通路
+	// 1 = 壁
+	//====================================
+
 	int mapValue = stage->GetMap(mapX, mapY);
 
 	if (mapValue == 1)
@@ -588,6 +711,10 @@ void Enemy::Draw()
 	static int frame = 0;
 
 	int nowFrame = animFrame[frame];
+
+	//====================================
+	// 画像の切り出し位置
+	//====================================
 
 	Rect iRect[4] =
 	{
@@ -620,6 +747,10 @@ void Enemy::Draw()
 		}
 	};
 
+	//====================================
+	// 当たり判定確認用の枠
+	//====================================
+
 	SetDrawBlendMode(
 		DX_BLENDMODE_ALPHA,
 		128);
@@ -633,6 +764,10 @@ void Enemy::Draw()
 		FALSE,
 		2);
 
+	//====================================
+	// 敵描画
+	//====================================
+
 	DrawRectExtendGraph(
 		pos_.x,
 		pos_.y,
@@ -645,15 +780,18 @@ void Enemy::Draw()
 		hImage_,
 		TRUE);
 
-	if (animTimer < 0)
-	{
-		frame = (++frame) % 4;
-
-		animTimer =
-			ANIM_INTERVAL + animTimer;
-	}
+	//====================================
+	// アニメーション
+	//====================================
 
 	animTimer -= Time::DeltaTime();
+
+	if (animTimer <= 0.0f)
+	{
+		frame = (frame + 1) % 4;
+
+		animTimer += ANIM_INTERVAL;
+	}
 
 	SetDrawBlendMode(
 		DX_BLENDMODE_NOBLEND,
